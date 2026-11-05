@@ -12,6 +12,8 @@
 
 ---
 
+<p align="center"><img src="https://vega421.github.io/assets/store/tobs-notify.png" alt="The four styles in game: island, badge, stack and compact" width="560"></p>
+
 A beam of light traces the outline, the inside fills, the words appear; when it's done, the beam runs off the far
 end. Free, standalone, for any framework.
 
