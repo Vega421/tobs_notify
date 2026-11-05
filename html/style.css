@@ -1,0 +1,81 @@
+/* tobs_notify: notifications drawn in light. Sizes are made for 1080p and scale with the screen (--u). */
+:root{
+  --u:calc(100vh / 1080 * 0.8 * var(--scale, 1));
+  --font:'Plus Jakarta Sans','Segoe UI',Arial,sans-serif;
+  --fill:rgba(10,12,16,.84);
+  --ink:#fff;--soft:#c9ced8;
+}
+html,body{margin:0;padding:0;background:transparent;overflow:hidden;font-family:var(--font);-webkit-font-smoothing:antialiased}
+#root{position:fixed;inset:0;pointer-events:none}
+#root.hidden{opacity:0}
+
+/* a pile of messages at a position */
+.pile{position:absolute;display:flex;gap:calc(10 * var(--u))}
+.pile.top-right{top:calc(28 * var(--u));right:calc(28 * var(--u));flex-direction:column;align-items:flex-end}
+.pile.top-left{top:calc(28 * var(--u));left:calc(28 * var(--u));flex-direction:column;align-items:flex-start}
+.pile.top{top:calc(28 * var(--u));left:50%;transform:translateX(-50%);flex-direction:column;align-items:center}
+.pile.bottom-right{bottom:calc(28 * var(--u));right:calc(28 * var(--u));flex-direction:column-reverse;align-items:flex-end}
+.pile.bottom-left{bottom:calc(28 * var(--u));left:calc(28 * var(--u));flex-direction:column-reverse;align-items:flex-start}
+.pile.bottom{bottom:calc(120 * var(--u));left:50%;transform:translateX(-50%);flex-direction:column-reverse;align-items:center}
+.pile.middle-right{top:50%;right:calc(28 * var(--u));transform:translateY(-50%);flex-direction:column;align-items:flex-end}
+.pile.middle-left{top:50%;left:calc(28 * var(--u));transform:translateY(-50%);flex-direction:column;align-items:flex-start}
+
+/* one message: the light outline (svg) behind the words (html) */
+.n{position:relative;--c:#48a6ff;transition:opacity .35s, transform .35s}
+.n svg.edge{position:absolute;inset:0;width:100%;height:100%;overflow:visible;pointer-events:none}
+.n .fill{fill:var(--fill)}
+.n .line{fill:none;stroke:var(--c);stroke-width:2;filter:drop-shadow(0 0 calc(3 * var(--u)) var(--c)) drop-shadow(0 0 calc(8 * var(--u)) var(--c))}
+.n .body{position:relative;display:flex;align-items:center;gap:calc(12 * var(--u));transition:opacity .3s}
+.n .ic{flex:none;display:grid;place-items:center;color:var(--c)}
+.n .ic svg{width:55%;height:55%}
+.n .ic i{font-size:calc(15 * var(--u))}
+.n .words{min-width:0}
+.n .ti{color:var(--ink);font-weight:700;font-size:calc(15 * var(--u));line-height:1.25}
+.n .tx{color:var(--soft);font-size:calc(13.5 * var(--u));line-height:1.4;white-space:pre-line;overflow-wrap:anywhere}
+.n .x{color:var(--c);font-weight:800;font-size:calc(12 * var(--u));margin-left:calc(6 * var(--u))}
+.n.dim{opacity:.55}
+.n.dim2{opacity:.38}
+.n.pulse .line{animation:pulse .5s}
+@keyframes pulse{50%{stroke-width:3.5}}
+
+/* stack: full shapes */
+.s-stack .n{min-width:calc(260 * var(--u));max-width:calc(400 * var(--u))}
+.s-stack .n .body{padding:calc(14 * var(--u)) calc(20 * var(--u)) calc(14 * var(--u)) calc(14 * var(--u))}
+.s-stack .n .ic{width:calc(36 * var(--u));height:calc(36 * var(--u));border-radius:50%;box-shadow:inset 0 0 0 2px var(--c)}
+.s-stack .n.k-round .body,.island .n.k-round .body{padding-left:calc(18 * var(--u))!important;padding-right:calc(24 * var(--u))!important}
+.s-stack .n.k-notched .body,.island .n.k-notched .body{padding-left:calc(22 * var(--u))!important;padding-right:calc(26 * var(--u))!important}
+
+/* compact: one line */
+.s-compact .n{max-width:calc(520 * var(--u))}
+.s-compact .n .body{padding:calc(9 * var(--u)) calc(16 * var(--u)) calc(9 * var(--u)) calc(12 * var(--u));gap:calc(9 * var(--u))}
+.s-compact .n .ic{width:calc(20 * var(--u));height:calc(20 * var(--u))}
+.s-compact .n .ic svg{width:100%;height:100%}
+.s-compact .n .words{display:flex;gap:calc(8 * var(--u));align-items:baseline;white-space:nowrap;overflow:hidden}
+.s-compact .n .ti{font-size:calc(13.5 * var(--u))}
+.s-compact .n .tx{font-size:calc(13 * var(--u));white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+/* badge: no box, a small shape round the icon, the words beside it */
+.s-badge .n{display:flex;align-items:center;gap:calc(12 * var(--u))}
+.s-badge .left .n{flex-direction:row-reverse}
+.s-badge .n .badge{position:relative;flex:none;width:calc(46 * var(--u));height:calc(46 * var(--u))}
+.s-badge .n .badge .ic{position:absolute;inset:0}
+.s-badge .n .words{max-width:calc(320 * var(--u));text-align:right;filter:drop-shadow(0 calc(1 * var(--u)) calc(3 * var(--u)) rgba(0,0,0,.95))}
+.s-badge .left .n .words{text-align:left}
+.s-badge .n .ti{font-size:calc(15.5 * var(--u))}
+.s-badge .n .tx{color:#e3e6ec}
+
+/* island: one at a time at Config.Position, a capsule when idle (IslandIdle dot or clock) */
+.island{position:relative;display:grid;place-items:center}
+.pile[class*="right"] .island{justify-items:end}
+.pile.left .island{justify-items:start}
+.island > *{grid-area:1/1}
+.island .cap{height:calc(30 * var(--u));min-width:calc(96 * var(--u));padding:0 calc(14 * var(--u));border-radius:calc(30 * var(--u));background:rgba(7,8,11,.88);
+  border:1px solid rgba(255,255,255,.08);color:#a3a8b5;font:700 calc(13 * var(--u))/calc(30 * var(--u)) 'Plus Jakarta Sans',system-ui,sans-serif;font-variant-numeric:tabular-nums;text-align:center;letter-spacing:.04em;
+  transition:opacity .3s, transform .45s cubic-bezier(.3,1.4,.4,1);box-sizing:border-box}
+.island .cap.dot{min-width:0;width:calc(12 * var(--u));height:calc(12 * var(--u));padding:0;font-size:0}
+.island.busy .cap{opacity:0;transform:scale(.6)}
+.island .n{min-width:calc(260 * var(--u));max-width:calc(440 * var(--u))}
+.island .n .body{padding:calc(14 * var(--u)) calc(22 * var(--u)) calc(14 * var(--u)) calc(14 * var(--u))}
+.island .n .ic{width:calc(36 * var(--u));height:calc(36 * var(--u));border-radius:50%;box-shadow:inset 0 0 0 2px var(--c)}
+
+.reduced *{transition:none!important;animation:none!important}
