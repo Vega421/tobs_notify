@@ -2,7 +2,7 @@
 
 All notable changes to tobs_notify.
 
-## 1.0.0 · not released yet
+## 1.0.0 · 2026-11-05
 
 **The first version: notifications drawn in light, a shape per kind.**
 
