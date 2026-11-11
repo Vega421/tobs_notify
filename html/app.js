@@ -55,13 +55,13 @@ function iconHTML(m, kind) {
 }
 
 /* ---------- building one message ---------- */
-function build(m) {
+function build(m, style = CFG.style) {
   const kind = kindOf(m);
   const el = document.createElement('div');
   el.className = `n k-${kind.shape}`;
   el.style.setProperty('--c', kind.color);
   const edge = '<svg class="edge" aria-hidden="true"><path class="fill"/><path class="line"/></svg>';
-  if (CFG.style === 'badge') {
+  if (style === 'badge') {
     el.innerHTML = `<div class="words"><div class="ti"><span class="t"></span><span class="x"></span></div><div class="tx"></div></div><div class="badge">${edge}<span class="ic"></span></div>`;
   } else {
     el.innerHTML = `${edge}<div class="body"><span class="ic"></span><div class="words"><div class="ti"><span class="t"></span><span class="x"></span></div><div class="tx"></div></div></div>`;
@@ -81,7 +81,7 @@ function fill(el, m, kind) {
 }
 
 /* the outline for the element's size; drawn by the light when `enter` */
-function drawEdge(el, kind, enter) {
+function drawEdge(el, kind, enter, style = CFG.style) {
   const svg = el.querySelector('svg.edge');
   const box = svg.parentElement;
   const w = box.clientWidth, h = box.clientHeight;
@@ -99,11 +99,13 @@ function drawEdge(el, kind, enter) {
   const fade = { duration: ms * 0.5, delay: ms * 0.5, easing: 'ease-out', fill: 'backwards' };
   fillP.animate([{ opacity: 0 }, { opacity: 1 }], fade);
   content.animate([{ opacity: 0, transform: 'translateY(3px)' }, { opacity: 1, transform: 'none' }], fade);
-  if (CFG.style === 'badge') el.querySelector('.ic').animate([{ opacity: 0 }, { opacity: 1 }], fade);
+  if (style === 'badge') el.querySelector('.ic').animate([{ opacity: 0 }, { opacity: 1 }], fade);
 }
 
 /* ---------- show, repeat, update, close ---------- */
+let showcasing = false;
 function show(m) {
+  if (showcasing) { waiting.push(m); return; }
   // the same message again while it shows: one message with ×n, its time starts again
   const same = active.find(a => (m.idGiven && a.m.id === m.id) || (!m.idGiven && !a.m.idGiven && a.key === keyOf(m)));
   if (same && !m.idGiven) return repeat(same);
@@ -219,29 +221,110 @@ function report() {
 function setup(cfg) {
   CFG = cfg;
   document.documentElement.style.setProperty('--scale', String(cfg.scale || 1));
-  root.className = `s-${cfg.style}${cfg.reduced ? ' reduced' : ''}`;
   if (cfg.fontAwesome) {
     const fa = document.createElement('link');
     fa.rel = 'stylesheet';
     fa.href = 'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css';
     document.head.append(fa);
   }
+  layout();
+  // the island's clock (only does something while there is a clock capsule)
+  setInterval(tick, 15000);
+}
+
+function tick() {
+  if (!cap || cap.classList.contains('dot')) return;
+  const d = new Date();
+  cap.textContent = `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+}
+
+// builds the pile (and the island) for CFG.style at CFG.position
+function layout() {
+  root.className = `s-${CFG.style}${CFG.reduced ? ' reduced' : ''}${root.classList.contains('hidden') ? ' hidden' : ''}`;
+  root.textContent = '';
+  island = null; cap = null;
   pile = document.createElement('div');
-  const pos = cfg.position || 'middle-right';
+  const pos = CFG.position || 'middle-right';
   pile.className = `pile ${pos}${pos.includes('left') ? ' left' : ''}`;
   root.append(pile);
-  if (cfg.style === 'island') {
+  if (CFG.style === 'island') {
     island = document.createElement('div');
     island.className = 'island';
-    if (cfg.islandIdle !== 'none') {
+    if (CFG.islandIdle !== 'none') {
       cap = document.createElement('div');
-      cap.className = 'cap' + (cfg.islandIdle === 'dot' ? ' dot' : '');
+      cap.className = 'cap' + (CFG.islandIdle === 'dot' ? ' dot' : '');
       island.append(cap);
-      const tick = () => { const d = new Date(); cap.textContent = `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`; };
-      tick(); setInterval(tick, 15000);
+      tick();
     }
     pile.append(island);
   }
+}
+
+// /notifytest style <name>: switch the style live (until tobs_notify restarts); what shows now is cleared
+function restyle(style) {
+  if (!['island', 'badge', 'stack', 'compact'].includes(style)) return;
+  active.splice(0).forEach(a => clearTimeout(a.timer));
+  waiting.length = 0;
+  CFG.style = style;
+  layout();
+  report();
+}
+
+// /notifytest styles: one message in each style at once (for a picture), then back to the normal style.
+// Messages that come in meanwhile wait and show afterwards.
+function showcase(list, ms) {
+  if (showcasing) return;
+  showcasing = true;
+  active.splice(0).forEach(a => { clearTimeout(a.timer); waiting.unshift(a.m); });
+  root.textContent = '';
+  root.className = `${CFG.reduced ? 'reduced' : ''}${root.classList.contains('hidden') ? ' hidden' : ''}`;
+  const pos = CFG.position || 'middle-right';
+  const box = document.createElement('div');
+  box.className = `pile ${pos}${pos.includes('left') ? ' left' : ''}`;
+  box.style.gap = 'calc(22 * var(--u))';
+  root.append(box);
+  const shown = [];
+  list.forEach((s, i) => {
+    const group = document.createElement('div');
+    group.className = `s-${s.style} sc-group`;
+    const label = document.createElement('span');
+    label.className = 'sc-label';
+    label.textContent = s.style;
+    label.style.setProperty('--c', kindOf({ type: s.type }).color);
+    group.append(label);
+    let holder = group;
+    if (s.style === 'island') { holder = document.createElement('div'); holder.className = 'island busy'; group.append(holder); }
+    box.append(group);
+    const m = { type: s.type, title: s.title, text: s.text, count: 1 };
+    const kind = kindOf(m);
+    const el = build(m, s.style);
+    holder.append(el);
+    shown.push({ el, kind, group });
+    setTimeout(() => requestAnimationFrame(() => drawEdge(el, kind, true, s.style)), i * 300);
+    if (i > 0) {
+      group.style.visibility = 'hidden';
+      setTimeout(() => { group.style.visibility = ''; }, i * 300);
+    }
+  });
+  reportedCount = list.length;     // something shows: the client hides it in the pause menu
+  post('count', { n: list.length });
+  setTimeout(() => {
+    shown.forEach(({ el, group }) => {
+      if (CFG.reduced) return;
+      const line = el.querySelector('svg.edge .line');
+      const len = line.getTotalLength();
+      line.style.strokeDasharray = `${len}`;
+      line.animate([{ strokeDashoffset: 0 }, { strokeDashoffset: -len }], { duration: 450, easing: 'cubic-bezier(.55,.05,.35,1)', fill: 'forwards' });
+      group.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 300, delay: 160, easing: 'ease-in', fill: 'forwards' });
+    });
+    setTimeout(() => {
+      showcasing = false;
+      layout();
+      const queued = waiting.splice(0);
+      queued.forEach(m => show(m));
+      report();
+    }, CFG.reduced ? 0 : 480);
+  }, ms + (list.length - 1) * 300 + (CFG.reduced ? 0 : CFG.drawMs || 650));
 }
 
 window.addEventListener('message', e => {
@@ -251,6 +334,8 @@ window.addEventListener('message', e => {
   else if (d.action === 'update') { const m = d.data; m.idGiven = true; update(m); }
   else if (d.action === 'close') close(d.id);
   else if (d.action === 'hidden') root.classList.toggle('hidden', !!d.hidden);
+  else if (d.action === 'style') restyle(d.style);
+  else if (d.action === 'showcase') showcase(d.list || [], d.duration || 20000);
 });
 
 /* ---------- start: the config from the game, or an example in a browser (?style=badge&position=top-left) ---------- */

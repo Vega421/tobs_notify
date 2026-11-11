@@ -153,7 +153,46 @@ end)
 -- /notifytest: every kind, a repeat, a long one and an update
 if Config.TestCommand then
     -- the server registers the command (it checks command.notifytest) and sends this to the player who typed it
-    RegisterNetEvent('tobs_notify:test', function() CreateThread(function()
+    -- the four kinds, used by 'slow' (one at a time) and 'all' (at once), 20 seconds each
+    local samples = {
+        { title = 'Car stored', description = 'Krieger is in Legion Garage Parking', type = 'success' },
+        { title = 'Not enough money', description = 'You need $2,500 in the bank', type = 'error' },
+        { title = 'Wanted plate', description = '86TDE835 read at Legion Garage Plate reader', type = 'warning' },
+        { title = 'New message', description = 'Unknown number: "Meet at the pier"', type = 'info' },
+    }
+    local HOLD = 20000
+
+    RegisterNetEvent('tobs_notify:test', function(mode, style) CreateThread(function()
+        if mode == 'styles' then
+            -- one message in each style at once, for a picture; then back to the normal style
+            local styles = { 'island', 'badge', 'stack', 'compact' }
+            local list = {}
+            for i, st in ipairs(styles) do
+                local s = samples[i]
+                list[i] = { style = st, type = s.type, title = s.title, text = s.description }
+            end
+            SendNUIMessage({ action = 'showcase', list = list, duration = HOLD })
+            return
+        elseif mode == 'style' then
+            -- switch the style live (until tobs_notify restarts) and show the four kinds in it for 20 s
+            SendNUIMessage({ action = 'style', style = style })
+            Wait(300)
+            for i, s in ipairs(samples) do
+                Notify({ id = 'notifytest_style' .. i, title = s.title, description = s.description, type = s.type, duration = HOLD })
+            end
+            return
+        elseif mode == 'slow' then
+            for i, s in ipairs(samples) do
+                Notify({ id = 'notifytest_slow' .. i, title = s.title, description = s.description, type = s.type, duration = HOLD })
+                Wait(HOLD + 1200) -- wait for it to leave before the next one
+            end
+            return
+        elseif mode == 'all' then
+            for i, s in ipairs(samples) do
+                Notify({ id = 'notifytest_all' .. i, title = s.title, description = s.description, type = s.type, duration = HOLD })
+            end
+            return
+        end
         Notify({ title = 'Car stored', description = 'Krieger is in Legion Garage Parking', type = 'success' })
         Wait(900)
         Notify('You need $2,500 in the bank', 'error', 5000, 'Not enough money')

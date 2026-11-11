@@ -79,3 +79,10 @@ html,body{margin:0;padding:0;background:transparent;overflow:hidden;font-family:
 .island .n .ic{width:calc(36 * var(--u));height:calc(36 * var(--u));border-radius:50%;box-shadow:inset 0 0 0 2px var(--c)}
 
 .reduced *{transition:none!important;animation:none!important}
+
+/* /notifytest styles: each style with its name beside it */
+.sc-group{display:flex;align-items:center;gap:calc(14 * var(--u))}
+.pile.left .sc-group{flex-direction:row-reverse}
+.sc-label{font:800 calc(12 * var(--u))/1 'Plus Jakarta Sans',system-ui,sans-serif;text-transform:uppercase;letter-spacing:.14em;
+  color:var(--c);padding:calc(6 * var(--u)) calc(9 * var(--u));border-radius:calc(6 * var(--u));background:rgba(7,8,11,.82);
+  box-shadow:inset 0 0 0 1px var(--c)}

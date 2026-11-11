@@ -35,6 +35,9 @@ end)
 
 -- /notifytest (players allowed command.notifytest, group.admin has it): the client shows the test
 -- /notifytest server: two messages sent through the server export (ox_lib fields, then QBCore arguments)
+-- /notifytest slow: each kind alone for 20 s; /notifytest all: the four kinds at once for 20 s (resmon)
+-- /notifytest style <island|badge|stack|compact>: switch the style live (until a restart), the four kinds for 20 s
+-- /notifytest styles: one message in each of the four styles at once for 20 s (a picture of them all)
 if Config.TestCommand then
     RegisterCommand('notifytest', function(src, args)
         if src <= 0 then return end
@@ -45,6 +48,21 @@ if Config.TestCommand then
             end)
             return
         end
-        TriggerClientEvent('tobs_notify:test', src)
+        if args[1] == 'styles' then
+            TriggerClientEvent('tobs_notify:test', src, 'styles')
+            return
+        end
+        if args[1] == 'style' then
+            local style = args[2] or Config.Style
+            if style ~= 'island' and style ~= 'badge' and style ~= 'stack' and style ~= 'compact' then
+                exports.tobs_notify:Notify(src, { title = '/notifytest style', description = 'island, badge, stack or compact', type = 'error' })
+                return
+            end
+            TriggerClientEvent('tobs_notify:test', src, 'style', style)
+            return
+        end
+        -- 'slow': each kind alone for 20 s (screenshots, video); 'all': the four at once for 20 s (resmon)
+        local mode = (args[1] == 'slow' or args[1] == 'all') and args[1] or nil
+        TriggerClientEvent('tobs_notify:test', src, mode)
     end, true)
 end
